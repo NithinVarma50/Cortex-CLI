@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:BuildBackend"
+
+[project]
+name = "cortex-ai"
+version = "0.1.0"
+description = "Local-first AI Operating System for companies"
+authors = [{ name = "Your Name", email = "you@email.com" }]
+requires-python = ">=3.11"
+dependencies = []  # See requirements.txt
+
+[project.scripts]
+cortex = "cli.main:app"
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88

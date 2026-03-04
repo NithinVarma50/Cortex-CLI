@@ -1,0 +1,30 @@
+name: financial_analysis
+description: Routine quarterly financial health analysis
+version: 1.0.0
+
+steps:
+  - id: data_gathering
+    agent: operations_agent
+    task: "Gather and compile operational expenditure data for Q3"
+    output_key: opex_data
+
+  - id: market_context
+    agent: research_agent
+    task: "Analyze macroeconomic factors affecting our industry this quarter"
+    output_key: macro_context
+
+  - id: analysis
+    agent: finance_agent
+    task: "Analyze {opex_data} in the context of {macro_context} and project Q4 budget"
+    depends_on: [data_gathering, market_context]
+    output_key: financial_analysis
+
+  - id: audit
+    agent: legal_agent
+    task: "Audit {financial_analysis} for SEC compliance and highlight risks"
+    depends_on: [analysis]
+    output_key: audit_report
+
+output:
+  summary: "Compile integrated Q3 Financial & Risk Report"
+  format: markdown

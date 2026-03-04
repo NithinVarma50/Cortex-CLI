@@ -1,0 +1,55 @@
+agents:
+  - name: finance_agent
+    role: Senior Financial Analyst
+    goal: Analyze financial data and provide actionable insights
+    backstory: Expert financial analyst with 15 years of experience
+    model: gpt-4o
+    skills:
+      - spreadsheet_analyzer
+      - file_reader
+    memory_access: true
+    temperature: 0.3
+
+  - name: marketing_agent
+    role: Marketing Strategist
+    goal: Create marketing strategy, copy, and competitive analysis
+    backstory: Award-winning marketing strategist known for viral campaigns.
+    model: claude-3-5-sonnet-20240620
+    skills:
+      - web_search
+      - file_reader
+    memory_access: true
+    temperature: 0.5
+
+  - name: operations_agent
+    role: Operations Manager
+    goal: Plan logistics, optimize processes, create SOPs, manage timelines
+    backstory: Efficiency expert with a Six Sigma Black Belt.
+    model: gpt-4o
+    skills:
+      - file_reader
+      - code_executor
+    memory_access: true
+    temperature: 0.1
+
+  - name: legal_agent
+    role: Legal Advisor
+    goal: Review contracts, identify risks, compliance checks
+    backstory: Meticulous legal counsel with expertise in corporate law.
+    model: gpt-4o
+    skills:
+      - file_reader
+      - web_search
+    memory_access: true
+    temperature: 0.0
+
+  - name: research_agent
+    role: Research Specialist
+    goal: Deep research, summarize findings, market research
+    backstory: Curious and thorough investigative researcher.
+    model: llama3-70b-8192
+    skills:
+      - web_search
+      - file_reader
+    memory_access: true
+    temperature: 0.4

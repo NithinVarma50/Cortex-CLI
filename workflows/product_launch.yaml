@@ -1,0 +1,31 @@
+name: product_launch
+description: Full product launch workflow across all departments
+version: 1.0.0
+
+steps:
+  - id: research
+    agent: research_agent
+    task: "Research market opportunities and competitor landscape for {product_name}"
+    output_key: market_research
+
+  - id: marketing
+    agent: marketing_agent
+    task: "Create marketing strategy based on: {market_research}"
+    depends_on: [research]
+    output_key: marketing_plan
+
+  - id: finance
+    agent: finance_agent
+    task: "Analyze budget requirements for: {marketing_plan}"
+    depends_on: [marketing]
+    output_key: financial_plan
+
+  - id: operations
+    agent: operations_agent
+    task: "Create launch timeline and operations plan based on: {financial_plan}"
+    depends_on: [finance]
+    output_key: ops_plan
+
+output:
+  summary: "Compile all outputs into final launch document"
+  format: markdown

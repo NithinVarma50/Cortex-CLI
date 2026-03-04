@@ -1,0 +1,31 @@
+name: marketing_campaign
+description: End-to-end marketing campaign generation and review
+version: 1.0.0
+
+steps:
+  - id: research
+    agent: research_agent
+    task: "Research trending keywords and target demographics for {campaign_topic}"
+    output_key: keywords_and_demo
+
+  - id: draft_copy
+    agent: marketing_agent
+    task: "Draft 3 variations of ad copy based on {keywords_and_demo}"
+    depends_on: [research]
+    output_key: ad_copy_drafts
+
+  - id: legal_review
+    agent: legal_agent
+    task: "Review {ad_copy_drafts} for compliance and intellectual property risks"
+    depends_on: [draft_copy]
+    output_key: legal_feedback
+
+  - id: finalize_copy
+    agent: marketing_agent
+    task: "Update {ad_copy_drafts} addressing {legal_feedback} to create final campaign assets"
+    depends_on: [legal_review, draft_copy]
+    output_key: final_assets
+
+output:
+  summary: "Deliver final campaign assets and compliance certificate"
+  format: markdown

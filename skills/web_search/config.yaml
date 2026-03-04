@@ -1,0 +1,4 @@
+name: web_search
+version: 1.0.0
+description: "Search the web using DuckDuckGo to find information."
+entrypoint: skill.WebSearchSkill

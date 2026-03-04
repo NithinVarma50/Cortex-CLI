@@ -1,0 +1,4 @@
+name: code_executor
+version: 1.0.0
+description: "Executes arbitrary python code in a restricted subprocess."
+entrypoint: skill.CodeExecutorSkill

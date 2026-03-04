@@ -1,0 +1,4 @@
+name: file_reader
+version: 1.0.0
+description: "Reads text, markdown, csv, and standard files from the local filesystem."
+entrypoint: skill.FileReaderSkill

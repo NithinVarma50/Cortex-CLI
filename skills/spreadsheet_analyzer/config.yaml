@@ -1,0 +1,4 @@
+name: spreadsheet_analyzer
+version: 1.0.0
+description: "Reads and analyzes excel/csv files, returns stats and sample data."
+entrypoint: skill.SpreadsheetAnalyzerSkill
