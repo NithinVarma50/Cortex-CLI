@@ -15,6 +15,8 @@ class KnowledgeStore:
             self.db["agents"].create({
                 "name": str,
                 "role": str,
+                "model": str,
+                "skills": str, # JSON serialized list of skills
                 "created_at": str
             }, pk="name")
             
@@ -32,9 +34,24 @@ class KnowledgeStore:
                 "timestamp": str
             }, pk="id")
 
-    def insert_agent(self, name: str, role: str):
+    def insert_agent(self, name: str, role: str, model: str = "", skills: str = "[]"):
         import datetime
-        self.db["agents"].upsert({"name": name, "role": role, "created_at": datetime.datetime.now().isoformat()}, pk="name")
+        self.db["agents"].upsert({
+            "name": name, 
+            "role": role, 
+            "model": model,
+            "skills": skills,
+            "created_at": datetime.datetime.now().isoformat()
+        }, pk="name")
+
+    def update_agent(self, name: str, updates: dict):
+        self.db["agents"].update(name, updates)
+
+    def get_agent(self, name: str) -> dict:
+        try:
+            return next(self.db["agents"].rows_where("name = ?", [name]))
+        except StopIteration:
+            return None
 
     def list_agents(self) -> list[dict]:
         return list(self.db["agents"].rows)

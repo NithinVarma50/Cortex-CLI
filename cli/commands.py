@@ -71,18 +71,25 @@ def init():
         mem.knowledge.log_event("system_init", "Cortex framework initialized")
         
         # Insert default agents into Knowledge DB
+        import json
+        
         defaults = [
-            ("finance_agent", "Senior Financial Analyst"),
-            ("marketing_agent", "Marketing Strategist"),
-            ("operations_agent", "Operations Manager"),
-            ("legal_agent", "Legal Advisor"),
-            ("research_agent", "Research Specialist")
+            ("finance_agent", "Senior Financial Analyst", "gpt-4o", json.dumps(["spreadsheet_analyzer"])),
+            ("marketing_agent", "Marketing Strategist", "gpt-4-turbo", json.dumps(["web_search"])),
+            ("operations_agent", "Operations Manager", "gpt-4o", json.dumps(["file_reader"])),
+            ("legal_agent", "Legal Advisor", "claude-3-5-sonnet", json.dumps([])),
+            ("research_agent", "Research Specialist", "gpt-4o", json.dumps(["web_search", "file_reader"]))
         ]
-        for name, role in defaults:
-            mem.knowledge.insert_agent(name, role)
+        
+        for name, role, model, skills in defaults:
+            mem.knowledge.insert_agent(name, role, model, skills)
             
     print_success("Cortex initialized successfully!")
-    print_info("Next steps:\n1. Check your .env config\n2. Run: cortex agent list\n3. Run: cortex agent run research_agent \"Research AI trends\"")
+    print_info("Opening Cortex web dashboard...")
+    
+    # Auto-launch dashboard
+    from cli.dashboard import start_dashboard
+    start_dashboard()
 
 
 @app.command()
@@ -144,7 +151,11 @@ def logs(tail: int = typer.Option(0, "--tail", help="Show last N log lines"),
         for line in lines:
             if agent and agent not in line:
                 continue
-            console._print(line.strip()) # Output without Rich formatting to preserve original log format
+@app.command()
+def dashboard(port: int = typer.Option(5742, "--port", help="Port to run the dashboard on")):
+    """Launch the Cortex Web Dashboard."""
+    from cli.dashboard import start_dashboard
+    start_dashboard(port)
 
 
 # --- Agent commands ---
@@ -157,23 +168,54 @@ def agent_run(name: str, task: str):
     except Exception as e:
         print_error(f"Task execution failed: {str(e)}")
 
-
 @agent_app.command("list")
 def agent_list():
     """List all agents with status."""
     mem = get_memory()
     agents = mem.knowledge.list_agents()
     
-    # Format for Rich Table directly from DB
     formatted = []
     for a in agents:
         formatted.append({
-            "name": a["name"],
-            "model": "Based on config",
-            "skills": "Based on config"
+            "name": a.get("name", "Unknown"),
+            "model": a.get("model") or "Default",
+            "skills": a.get("skills") or "[]"
         })
     print_agent_list(formatted)
 
+@agent_app.command("set-model")
+def agent_set_model(agent_name: str, model_name: str):
+    """Assign a specific model to an agent."""
+    mem = get_memory()
+    agent_data = mem.knowledge.get_agent(agent_name)
+    if not agent_data:
+        print_error(f"Agent '{agent_name}' not found.")
+        raise typer.Exit(1)
+        
+    mem.knowledge.update_agent(agent_name, {"model": model_name})
+    print_success(f"Agent '{agent_name}' will now use model '{model_name}'.")
+
+@agent_app.command("assign-skill")
+def agent_assign_skill(agent_name: str, skill_name: str):
+    """Assign a skill to an agent."""
+    mem = get_memory()
+    agent_data = mem.knowledge.get_agent(agent_name)
+    if not agent_data:
+        print_error(f"Agent '{agent_name}' not found.")
+        raise typer.Exit(1)
+        
+    skills_json = agent_data.get("skills", "[]")
+    try:
+        current_skills = json.loads(skills_json)
+    except:
+        current_skills = []
+        
+    if skill_name not in current_skills:
+        current_skills.append(skill_name)
+        mem.knowledge.update_agent(agent_name, {"skills": json.dumps(current_skills)})
+        print_success(f"Skill '{skill_name}' assigned to '{agent_name}'.")
+    else:
+        print_warning(f"Agent already has skill '{skill_name}'.")
 
 # --- Workflow commands ---
 @workflow_app.command("run")
@@ -192,7 +234,6 @@ def workflow_run(
     except Exception as e:
         print_error(f"Workflow execution failed: {str(e)}")
 
-
 @workflow_app.command("list")
 def workflow_list():
     """List all available workflows."""
@@ -208,7 +249,6 @@ def workflow_list():
             
     print_generic_table("Workflows", ["Name", "Status"], rows)
 
-
 # --- Memory commands ---
 @memory_app.command("search")
 def memory_search(query: str):
@@ -223,7 +263,6 @@ def memory_search(query: str):
         
     for r in results:
         print_info(f"\n--- Match (Score: {r['distance']}) ---\n{r['content']}")
-
 
 @memory_app.command("stats")
 def memory_stats():
@@ -254,6 +293,22 @@ def skill_list():
                 rows.append([item, "1.0.0", "Installed"])
     print_generic_table("Skills", ["Name", "Version", "Status"], rows)
 
+@skill_app.command("info")
+def skill_info(name: str):
+    """Show detailed info for a single skill."""
+    import yaml
+    config_path = f"./skills/{name}/config.yaml"
+    if not os.path.exists(config_path):
+        print_error(f"Skill '{name}' not found.")
+        return
+        
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+        
+    print_success(f"Skill info: {config.get('name')}")
+    print_info(f"Description: {config.get('description')}")
+    print_info(f"Version: {config.get('version')}")
+
 
 # --- Model commands ---
 @model_app.command("list")
@@ -270,3 +325,78 @@ def model_list():
         rows.append([provider, m, is_def])
         
     print_generic_table("Models", ["Provider", "Model", "Default"], rows)
+
+@model_app.command("set-default")
+def model_set_default(model_name: str):
+    """Set the default model for all agents."""
+    _update_env_value("CORTEX_DEFAULT_MODEL", model_name)
+    print_success(f"Default model set to {model_name} in .env file.")
+
+@model_app.command("test")
+def model_test(model_name: str):
+    """Test connection to a specific model."""
+    router = get_router()
+    with show_spinner(f"Pinging {model_name}..."):
+        result = router.test_connection(model_name)
+    
+    if result:
+        print_success(f"Successfully connected to {model_name}.")
+    else:
+        print_error(f"Failed to connect to {model_name}. Check your API keys and internet connection.")
+
+
+# --- Config commands ---
+def _update_env_value(key: str, value: str):
+    """Helper to update .env file."""
+    env_path = ".env"
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            lines = f.readlines()
+            
+    updated = False
+    with open(env_path, "w") as f:
+        for line in lines:
+            if line.startswith(f"{key}="):
+                f.write(f"{key}={value}\n")
+                updated = True
+            else:
+                f.write(line)
+        if not updated:
+            f.write(f"{key}={value}\n")
+
+@config_app.command("set-key")
+def config_set_key(provider: str, api_key: str):
+    """Set an API key for a provider (openai, anthropic, groq)."""
+    provider = provider.lower()
+    mapping = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "groq": "GROQ_API_KEY"
+    }
+    
+    env_var = mapping.get(provider)
+    if not env_var:
+        print_error(f"Unknown provider: {provider}")
+        raise typer.Exit(1)
+        
+    _update_env_value(env_var, api_key)
+    print_success(f"{env_var} updated successfully.")
+
+@config_app.command("show")
+def config_show():
+    """Show current API configuration (keys masked)."""
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    keys = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "CORTEX_DEFAULT_MODEL"]
+    rows = []
+    
+    for key in keys:
+        val = os.getenv(key, "Not set")
+        if val != "Not set" and "KEY" in key:
+            val = f"{val[:4]}...{val[-4:]}" if len(val) > 10 else "***"
+        rows.append([key, val])
+        
+    print_generic_table("System Configuration", ["Key", "Value"], rows)
+
