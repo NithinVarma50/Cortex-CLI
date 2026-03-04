@@ -3,11 +3,6 @@ from typing import List
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from models.openai_model import get_openai_model
-from models.anthropic_model import get_anthropic_model
-from models.groq_model import get_groq_model
-from models.ollama_model import get_ollama_model
-
 
 class ModelRouter:
     """Routes to the correct LLM provider based on model name."""
@@ -21,16 +16,17 @@ class ModelRouter:
         target_model = model_name or self.default_model
 
         if target_model.startswith("gpt-"):
+            from models.openai_model import get_openai_model
             return get_openai_model(target_model)
         elif target_model.startswith("claude-"):
+            from models.anthropic_model import get_anthropic_model
             return get_anthropic_model(target_model)
-        elif target_model.startswith("llama") and "groq" not in target_model.lower():
-            # Basic heuristic, local llama vs groq llama
-            return get_ollama_model(target_model)
         elif "mixtral" in target_model.lower() or "llama3-70b" in target_model.lower():
+            from models.groq_model import get_groq_model
             return get_groq_model(target_model)
         else:
-            # Fallback for ollama models like gemma, mistral, deepseek
+            # Fallback for ollama models like llama3, gemma, mistral, deepseek
+            from models.ollama_model import get_ollama_model
             return get_ollama_model(target_model)
 
     def list_available(self) -> List[str]:

@@ -14,12 +14,8 @@ from cli.display import (
     print_agent_list,
     print_generic_table,
     show_spinner,
+    console,
 )
-
-from memory.memory_manager import MemoryManager
-from models.model_router import ModelRouter
-from core.orchestrator import Orchestrator
-from core.workflow_engine import WorkflowEngine
 
 
 app = typer.Typer(help="🧠 CORTEX — AI Operating System", no_args_is_help=True)
@@ -39,18 +35,23 @@ app.add_typer(skill_app, name="skill")
 app.add_typer(model_app, name="model")
 app.add_typer(config_app, name="config")
 
-# --- Dependencies ---
-def get_memory() -> MemoryManager:
+# --- Dependencies (lazy imports) ---
+def get_memory():
+    from memory.memory_manager import MemoryManager
     return MemoryManager()
 
-def get_router() -> ModelRouter:
+def get_router():
+    from models.model_router import ModelRouter
     return ModelRouter()
 
-def get_orchestrator() -> Orchestrator:
+def get_orchestrator():
+    from core.orchestrator import Orchestrator
     return Orchestrator(get_memory(), get_router())
 
-def get_workflow_engine() -> WorkflowEngine:
+def get_workflow_engine():
+    from core.workflow_engine import WorkflowEngine
     return WorkflowEngine(get_memory(), get_orchestrator())
+
 
 
 # Root commands
